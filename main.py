@@ -46,31 +46,28 @@ def main():
 
         startat += maxResults
 
-    # obtain fix versions for stories
+    # obtain fix versions for all issues retrieved above
     for story in stories:
-        r3 = requests.get(f"https://safefleet.atlassian.net/rest/api/2/issue/{story}?fields=fixVersions",
+        r2 = requests.get(f"https://safefleet.atlassian.net/rest/api/2/issue/{story}?fields=fixVersions",
                           auth=(USER, PASSWORD))
-        rawdata_fixversion = r3.json()
+        rawdata_fixversion = r2.json()
         if not rawdata_fixversion['fields']['fixVersions']:
             fixversions.append('None')
         else:
             for d in rawdata_fixversion['fields']['fixVersions']:
                 if 'name' in d:
                     fixversions.append(d['name'])
-    #print(fixversions)
 
-    # print(fixversions)
-
-    # call endpoint for all the stories captured above to obtain linked issues
+    # call endpoint for all the issues captured above to determine linked issues of type test
     for story in stories:
-        r2 = requests.get(f"https://safefleet.atlassian.net/rest/api/2/issue/{story}?fields=issuelinks",
+        r3 = requests.get(f"https://safefleet.atlassian.net/rest/api/2/issue/{story}?fields=issuelinks",
                         auth=(USER, PASSWORD))
 
-        rawdata_story = r2.json()
+        rawdata_story = r3.json()
 
         story_links = rawdata_story['fields']['issuelinks']
 
-        # determine if there is a linked issue for the story, this is to obtain
+        # determine if there is a linked issue for the main issue, this is to obtain
         # status of test linked to stories
         coveragestatus=False
         for story_link in story_links:
@@ -79,14 +76,10 @@ def main():
                     coveragestatus=True
         testcoveragestatus.append(coveragestatus)
 
-    print(stories)
-    print(fixversions)
-    print(testcoveragestatus)
-    
+    # combine all the lists collected into one
     result = dict(zip(stories, zip(fixversions, testcoveragestatus)))
 
-    # print(result)
-
+    # write the output to file
     with open('requirement_test_coverage.csv', 'w', newline='') as csv_file:
         writer = csv.writer(csv_file)
         writer.writerow(['Story', 'FixVersion', 'TestCoverage'])
