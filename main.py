@@ -10,6 +10,39 @@ PASSWORD = 'Fall2016'
 maxResults = 50
 
 
+def get_all_issues(PROJECT_ID, STORYTYPEISSUE_ID, USER, PASSWORD, maxResults):
+    """
+
+    :param PROJECT_ID: PROJECT ID number for the project found in JIRA
+    :param STORYTYPEISSUE_ID: ISSUE ID number of the type of issue found in JIRA
+    :param USER:
+    :param PASSWORD:
+    :param maxResults: pagination default value as per JIRA API
+    :return: a list of all project stories
+    """
+    startat = 0
+    project_stories = []
+
+    res = requests.get(
+        f"https://safefleet.atlassian.net/rest/api/2/search?jql=project={PROJECT_ID} AND issuetype={STORYTYPEISSUE_ID}",
+        auth=(USER, PASSWORD))
+    total = res.json()['total']  # Total number of issues
+
+
+    while (total - startat) > 0:
+        res = requests.get(
+            f"https://safefleet.atlassian.net/rest/api/2/search?jql=project={PROJECT_ID} AND issuetype={STORYTYPEISSUE_ID}&startAt={startat}",
+            auth=(USER, PASSWORD))
+        rawdata_project_stories = res.json()
+        project_stories.append(rawdata_project_stories['issues'])
+        startat += maxResults
+    return project_stories
+
+def get_fieldtype_from_issues(fieldtype,issues):
+    for issue in issues:
+
+
+
 def id_generator(dict_var):
     for k, v in dict_var.items():
         if k == "id":
