@@ -5,10 +5,7 @@ from itertools import chain
 
 
 class JiraProjectStats:
-
-    STORYTYPEISSUE_ID = '10001'
-    TESTTYPEISSUE_ID = '10600'
-    
+   
     def __init__(self, user, password, project_id, api_link):
         self.user = user
         self.password = password
@@ -24,8 +21,7 @@ class JiraProjectStats:
 
     def _get_issues_first_page(self, issue_type_id):
         self.response_first_page = requests.get(
-            f"{self.api}/search?jql=project={self.project_id} AND \
-            issuetype={issue_type_id}&startAt=0",
+            f"{self.api}/search?jql=project={self.project_id} AND issuetype={issue_type_id}&startAt=0",\
             auth=(self.user, self.password))
          
     def get_all_issue_keys(self, issue_type_id):
@@ -77,12 +73,13 @@ class JiraProjectStats:
                     yield id_val
 
     @staticmethod
-    def write_to_csv(filename, fieldnames, list_of_dict):
+    def write_to_csv(filename, list_of_dict,  headers=[]):
         with open(filename, 'w', newline='') as csv_file:
-            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+            writer = csv.DictWriter(csv_file, fieldnames=headers)
             writer.writeheader()
             for dict_var in list_of_dict:
                 writer.writerow(dict_var)
+
 
 
 if __name__ == '__main__':
@@ -93,6 +90,7 @@ if __name__ == '__main__':
     j = JiraProjectStats("imrana@cobantech.com", 'Fall2016', '13107', 'https://safefleet.atlassian.net/rest/api/2')
     issue_keys = j.get_all_issue_keys(STORYTYPEISSUE_ID)
 
+
     results = []
 
     for issue_key in issue_keys:
@@ -102,7 +100,6 @@ if __name__ == '__main__':
         d['testCoverage'] = j.is_issue_type_linked_to_issue(issue_key, TESTTYPEISSUE_ID)
         results.append(d)
 
-    j.write_to_csv('requirement_test_coverage.csv', results, fieldnames=['key', 'fixVersion', 'testCoverage'], )
-
+    j.write_to_csv('requirement_test_coverage.csv', results, headers=['key', 'fixVersion', 'testCoverage'])
 
 
