@@ -83,6 +83,16 @@ class JiraProjectStats:
                 return entry.get("id")
         raise ValueError("no project id found for the key requested")
 
+    def get_resolution_for_issue(self, issue_key):
+        res = requests.get(f"{self.api}/issue/{issue_key}?fields=resolution", auth=(self.user,self.password))
+        res_json = res.json()
+        try:
+            resolution = res_json['fields']['resolution']['name']
+            return resolution
+        except Exception as e:
+            return "NotSpecified"
+
+    
     def _get_issue_id_from_name(self, issue_type_name):
         res = requests.get(f"{self.api}/issuetype", auth=(self.user,self.password))
         res_json = res.json()
@@ -108,17 +118,18 @@ if __name__ == '__main__':
 
     results = []
 
-    count = 0
+    # count = 0
     for issue_key in issue_keys:
-        if count > 5:
-            break
+        # if count > 20:
+        #     break
         d = {}
         d['key'] = issue_key
         d['fixVersion'] = j.get_fix_version_for_issue(issue_key)
+        d['resolution'] = j.get_resolution_for_issue(issue_key)
         d['testCoverage'] = j.is_issue_type_linked_to_issue(issue_key, "Test")
         results.append(d)
-        count += 1
+        # count += 1
 
-    j.write_to_csv('requirement_test_coverage.csv', results, headers=['key', 'fixVersion', 'testCoverage'])
+    j.write_to_csv('requirement_test_coverage.csv', results, headers=['key', 'fixVersion', 'resolution', 'testCoverage'])
 
 
