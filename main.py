@@ -6,13 +6,14 @@ from itertools import chain
 
 class JiraProjectStats:
    
-    def __init__(self, user, password, project_id, api_link):
+    def __init__(self, user, password, project_key, api_link):
         self.user = user
         self.password = password
         self.maxresults = 50
         self.startat = 0
         self.api = api_link
-        self.project_id = project_id
+        self.project_key = project_key
+        self.project_id = self._get_project_id_from_key()
         self.issue_keys = []
         
     def get_total_issue_count(self, issue_type_id):
@@ -24,7 +25,8 @@ class JiraProjectStats:
             f"{self.api}/search?jql=project={self.project_id} AND issuetype={issue_type_id}&startAt=0",\
             auth=(self.user, self.password))
          
-    def get_all_issue_keys(self, issue_type_id):
+    def get_all_issue_keys(self, issue_type_name):
+        issue_type_id = self._get_issue_id_from_name(issue_type_name)
         self.get_total_issue_count(issue_type_id)
         while (self.total - self.startat) > 0:
             issues = self._get_issue_keys_per_page(issue_type_id)
@@ -52,25 +54,42 @@ class JiraProjectStats:
                     fixversion = d['name']
         return fixversion
     
-    def is_issue_type_linked_to_issue(self, issue_key, issue_type_id):
+    def is_issue_type_linked_to_issue(self, issue_key, issue_type_name):
+        issue_type_id = self._get_issue_id_from_name(issue_type_name)
         res = requests.get(f"{self.api}/issue/{issue_key}?fields=issuelinks",
                          auth=(self.user, self.password))
         res_json = res.json()
         links = res_json['fields']['issuelinks']
         coveragestatus = False
         for link in links:
-            for x in self.id_generator(link):
+            for x in self._id_generator(link):
                 if x == issue_type_id:
                     coveragestatus = True
         return coveragestatus
 
-    def id_generator(self, dict_var):
+    def _id_generator(self, dict_var):
         for k, v in dict_var.items():
             if k == "id":
                 yield v
             elif isinstance(v, dict):
-                for id_val in self.id_generator(v):
+                for id_val in self._id_generator(v):
                     yield id_val
+
+    def _get_project_id_from_key(self):
+        res = requests.get(f"{self.api}/project",auth=(self.user, self.password))
+        res_json = res.json()
+        for entry in res_json:
+            if entry.get("key") == self.project_key:
+                return entry.get("id")
+        raise ValueError("no project id found for the key requested")
+
+    def _get_issue_id_from_name(self, issue_type_name):
+        res = requests.get(f"{self.api}/issuetype", auth=(self.user,self.password))
+        res_json = res.json()
+        for entry in res_json:
+            if entry.get("name") == issue_type_name:
+                return entry.get("id")
+        raise ValueError("issue type name is not correct")
 
     @staticmethod
     def write_to_csv(filename, list_of_dict,  headers=[]):
@@ -83,22 +102,22 @@ class JiraProjectStats:
 
 
 if __name__ == '__main__':
-
-    STORYTYPEISSUE_ID = '10001'
-    TESTTYPEISSUE_ID = '10600'
-        
-    j = JiraProjectStats("imrana@cobantech.com", 'Fall2016', '13107', 'https://safefleet.atlassian.net/rest/api/2')
-    issue_keys = j.get_all_issue_keys(STORYTYPEISSUE_ID)
-
+       
+    j = JiraProjectStats("imrana@cobantech.com", 'Fall2016', 'HS', 'https://safefleet.atlassian.net/rest/api/2')
+    issue_keys = j.get_all_issue_keys("Story")
 
     results = []
 
+    count = 0
     for issue_key in issue_keys:
+        if count > 5:
+            break
         d = {}
         d['key'] = issue_key
         d['fixVersion'] = j.get_fix_version_for_issue(issue_key)
-        d['testCoverage'] = j.is_issue_type_linked_to_issue(issue_key, TESTTYPEISSUE_ID)
+        d['testCoverage'] = j.is_issue_type_linked_to_issue(issue_key, "Test")
         results.append(d)
+        count += 1
 
     j.write_to_csv('requirement_test_coverage.csv', results, headers=['key', 'fixVersion', 'testCoverage'])
 
