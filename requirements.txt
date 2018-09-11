@@ -1,0 +1,15 @@
+Package      Version  
+------------ ---------
+certifi      2018.4.16
+chardet      3.0.4    
+get          1.0.3    
+idna         2.7      
+pip          18.0     
+post         1.0.2    
+public       1.0.3    
+query-string 1.0.2    
+request      1.0.2    
+requests     2.19.1   
+setuptools   40.0.0   
+urllib3      1.23     
+wheel        0.31.1   
