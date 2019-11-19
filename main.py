@@ -112,8 +112,12 @@ class JiraProjectStats:
 
 
 if __name__ == '__main__':
+   
+    host = os.environ['host']
+    username = os.environ['username']
+    password = os.environ['password']
        
-    j = JiraProjectStats("imrana@cobantech.com", 'Fall2016', 'HS', 'https://safefleet.atlassian.net/rest/api/2')
+    j = JiraProjectStats(username, password, 'HS', 'https://{0}/rest/api/2'.format(host))
     issue_keys = j.get_all_issue_keys("Story")
 
     results = []
